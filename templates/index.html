@@ -1,168 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AWS CloudTrail Log Viewer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --primary-color: #232f3e;
-            --secondary-color: #ff9900;
-            --background-color: #f2f3f3;
-            --card-background: #ffffff;
-            --text-color: #16191f;
-            --border-color: #d5dbdb;
-        }
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1, h2 {
-            color: var(--primary-color);
-            border-bottom: 3px solid var(--secondary-color);
-            padding-bottom: 10px;
-            font-size: 2.5em;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        }
-        h2 {
-            font-size: 1.8em;
-            border-bottom: none;
-        }
-        .input-group, .aws-credentials {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-            background-color: var(--card-background);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        label {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        input[type="text"], input[type="password"], input[type="datetime-local"] {
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 1em;
-        }
-        button {
-            background-color: var(--secondary-color);
-            color: var(--primary-color);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s;
-            font-size: 1em;
-            align-self: flex-start;
-        }
-        button:hover {
-            background-color: #ffc46d;
-        }
-        #chartContainer {
-            background-color: var(--card-background);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        #logOutput {
-            white-space: pre-wrap;
-            background-color: var(--card-background);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            overflow-x: auto;
-            font-family: 'Roboto Mono', monospace;
-            font-size: 14px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .credentials-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .info-icon {
-            width: 20px;
-            height: 20px;
-            background-color: var(--secondary-color);
-            color: var(--primary-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: help;
-            position: relative;
-        }
-        .info-icon::after {
-            content: 'i';
-        }
-        .tooltip {
-            visibility: hidden;
-            width: 200px;
-            background-color: var(--primary-color);
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -100px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .info-icon:hover .tooltip {
-            visibility: visible;
-            opacity: 1;
-        }
-    </style>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AWS CloudTrail Log Viewer</title>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            :root {
+                --primary-color: #232f3e;
+                --secondary-color: #ff9900;
+                --background-color: #f2f3f3;
+                --card-background: #ffffff;
+                --text-color: #16191f;
+                --border-color: #d5dbdb;
+            }
+            body {
+                font-family: 'Roboto', Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: var(--background-color);
+                color: var(--text-color);
+                line-height: 1.6;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            h1, h2 {
+                color: var(--primary-color);
+                padding-bottom: 10px;
+                font-size: 2.5em;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            }
+            h1 {
+                border-bottom: 3px solid var(--secondary-color);
+            }
+            h2 {
+                font-size: 1.8em;
+                border-bottom: none;
+                margin-top: 0;
+            }
+            .two-column-layout {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                align-items: stretch;
+            }
+            .column {
+                flex: 1;
+                min-width: 300px;
+                display: flex;
+                flex-direction: column;
+            }
+            .aws-credentials, .date-range {
+                background-color: var(--card-background);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            .aws-credentials > *, .date-range > * {
+                margin-bottom: 15px;
+            }
+            .aws-credentials > *:last-child, .date-range > *:last-child {
+                margin-bottom: 0;
+            }
+            .credentials-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .info-icon {
+                width: 20px;
+                height: 20px;
+                background-color: var(--secondary-color);
+                color: var(--primary-color);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: help;
+                position: relative;
+            }
+            .info-icon::after {
+                content: 'i';
+            }
+            .tooltip {
+                visibility: hidden;
+                width: 200px;
+                background-color: var(--primary-color);
+                color: #fff;
+                text-align: center;
+                border-radius: 6px;
+                padding: 5px;
+                position: absolute;
+                z-index: 1;
+                bottom: 125%;
+                left: 50%;
+                margin-left: -100px;
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+            .info-icon:hover .tooltip {
+                visibility: visible;
+                opacity: 1;
+            }
+            label {
+                font-weight: bold;
+                color: var(--primary-color);
+                display: block;
+            }
+            input[type="text"], input[type="password"], input[type="datetime-local"] {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid var(--border-color);
+                border-radius: 4px;
+                font-size: 1em;
+            }
+            button {
+                background-color: var(--secondary-color);
+                color: var(--primary-color);
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: background-color 0.3s;
+                font-size: 1em;
+            }
+            button:hover {
+                background-color: #ffc46d;
+            }
+            .get-logs-button {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: auto;
+            }
+            #chartContainer {
+                background-color: var(--card-background);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 20px;
+                margin-top: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            #logOutput {
+                white-space: pre-wrap;
+                background-color: var(--card-background);
+                padding: 20px;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                overflow-x: auto;
+                font-family: 'Roboto Mono', monospace;
+                font-size: 14px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                margin-top: 20px;
+            }
+            .donations {
+                background-color: var(--card-background);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 20px;
+                margin-top: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                text-align: center;
+            }
+            .donations img {
+                max-width: 200px;
+                height: auto;
+                margin-bottom: 15px;
+            }
+            @media (max-width: 768px) {
+                .column {
+                    flex-basis: 100%;
+                }
+            }
+        </style>
+    </head>
 <body>
     <div class="container">
         <h1>AWS CloudTrail Log Viewer</h1>
-        <div class="aws-credentials">
-            <div class="credentials-header">
-                <h2>AWS Credentials</h2>
-                <div class="info-icon">
-                    <span class="tooltip">Adicione sua credencial AWS</span>
+        
+        <div class="two-column-layout">
+            <div class="column">
+                <div class="aws-credentials">
+                    <div class="credentials-header">
+                        <h2>AWS Credentials</h2>
+                        <div class="info-icon">
+                            <span class="tooltip">Adicione sua credencial AWS</span>
+                        </div>
+                    </div>
+                    <input type="text" id="awsAccessKeyId" placeholder="AWS Access Key ID">
+                    <input type="password" id="awsSecretAccessKey" placeholder="AWS Secret Access Key">
+                    <input type="text" id="awsRegion" placeholder="AWS Region (e.g., us-east-1)">
                 </div>
             </div>
-            <input type="text" id="awsAccessKeyId" placeholder="AWS Access Key ID">
-            <input type="password" id="awsSecretAccessKey" placeholder="AWS Secret Access Key">
-            <input type="text" id="awsRegion" placeholder="AWS Region (e.g., us-west-2)">
+            
+            <div class="column">
+                <div class="date-range">
+                    <h2>Date Range</h2>
+                    <label for="startTime">Start Time:</label>
+                    <input type="datetime-local" id="startTime">
+                    <label for="endTime">End Time:</label>
+                    <input type="datetime-local" id="endTime">
+                </div>
+                <div class="get-logs-button">
+                    <button onclick="getLogs()">Get Logs</button>
+                </div>
+            </div>
         </div>
-        <div class="input-group">
-            <label for="startTime">Start Time:</label>
-            <input type="datetime-local" id="startTime">
-            <label for="endTime">End Time:</label>
-            <input type="datetime-local" id="endTime">
-            <button onclick="getLogs()">Get Logs</button>
-        </div>
+
         <div id="chartContainer">
             <canvas id="eventChart"></canvas>
         </div>
         <div id="logOutput"></div>
+
+        <div class="donations">
+            <h2>Apoie este projeto</h2>
+            <p>Se você achou este projeto útil, considere fazer uma doação:</p>
+            <img src="/static/images/pix.jpg" alt="QR Code PIX para doação">
+            <p>Sua contribuição ajuda a manter e melhorar este projeto. Obrigado pelo apoio!</p>
+        </div>
     </div>
 
     <script>
@@ -175,7 +240,6 @@
             const awsSecretAccessKey = document.getElementById('awsSecretAccessKey').value;
             const awsRegion = document.getElementById('awsRegion').value;
             
-            // Salvar credenciais e região no armazenamento local
             localStorage.setItem('awsAccessKeyId', awsAccessKeyId);
             localStorage.setItem('awsSecretAccessKey', awsSecretAccessKey);
             localStorage.setItem('awsRegion', awsRegion);
