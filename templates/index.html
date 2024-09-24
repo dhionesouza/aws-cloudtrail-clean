@@ -37,6 +37,7 @@
         }
         h2 {
             font-size: 1.8em;
+            border-bottom: none;
         }
         .input-group, .aws-credentials {
             display: flex;
@@ -93,13 +94,60 @@
             font-size: 14px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        .credentials-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-icon {
+            width: 20px;
+            height: 20px;
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: help;
+            position: relative;
+        }
+        .info-icon::after {
+            content: 'i';
+        }
+        .tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--primary-color);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .info-icon:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>AWS CloudTrail Log Viewer</h1>
         <div class="aws-credentials">
-            <h2>AWS Credentials</h2>
+            <div class="credentials-header">
+                <h2>AWS Credentials</h2>
+                <div class="info-icon">
+                    <span class="tooltip">Adicione sua credencial AWS</span>
+                </div>
+            </div>
             <input type="text" id="awsAccessKeyId" placeholder="AWS Access Key ID">
             <input type="password" id="awsSecretAccessKey" placeholder="AWS Secret Access Key">
             <input type="text" id="awsRegion" placeholder="AWS Region (e.g., us-west-2)">
