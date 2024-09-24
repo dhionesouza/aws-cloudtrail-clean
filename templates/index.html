@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS CloudTrail Log Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #232f3e;
+            --secondary-color: #ff9900;
+            --background-color: #f2f3f3;
+            --card-background: #ffffff;
+            --text-color: #16191f;
+            --border-color: #d5dbdb;
+        }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        h2 {
+            font-size: 1.8em;
+        }
+        .input-group, .aws-credentials {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        input[type="text"], input[type="password"], input[type="datetime-local"] {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            font-size: 1em;
+            align-self: flex-start;
+        }
+        button:hover {
+            background-color: #ffc46d;
+        }
+        #chartContainer {
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #logOutput {
+            white-space: pre-wrap;
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AWS CloudTrail Log Viewer</h1>
+        <div class="aws-credentials">
+            <h2>AWS Credentials</h2>
+            <input type="text" id="awsAccessKeyId" placeholder="AWS Access Key ID">
+            <input type="password" id="awsSecretAccessKey" placeholder="AWS Secret Access Key">
+            <input type="text" id="awsRegion" placeholder="AWS Region (e.g., us-west-2)">
+        </div>
+        <div class="input-group">
+            <label for="startTime">Start Time:</label>
+            <input type="datetime-local" id="startTime">
+            <label for="endTime">End Time:</label>
+            <input type="datetime-local" id="endTime">
+            <button onclick="getLogs()">Get Logs</button>
+        </div>
+        <div id="chartContainer">
+            <canvas id="eventChart"></canvas>
+        </div>
+        <div id="logOutput"></div>
+    </div>
+
+    <script>
+        let chart;
+
+        function getLogs() {
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const awsAccessKeyId = document.getElementById('awsAccessKeyId').value;
+            const awsSecretAccessKey = document.getElementById('awsSecretAccessKey').value;
+            const awsRegion = document.getElementById('awsRegion').value;
+            
+            // Salvar credenciais e região no armazenamento local
+            localStorage.setItem('awsAccessKeyId', awsAccessKeyId);
+            localStorage.setItem('awsSecretAccessKey', awsSecretAccessKey);
+            localStorage.setItem('awsRegion', awsRegion);
+            
+            updateURL(startTime, endTime, awsAccessKeyId, awsSecretAccessKey, awsRegion);
+            
+            fetchLogsAndUpdateChart(startTime, endTime, awsAccessKeyId, awsSecretAccessKey, awsRegion);
+        }
+
+        function fetchLogsAndUpdateChart(startTime, endTime, awsAccessKeyId, awsSecretAccessKey, awsRegion) {
+            fetch('/get_logs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_time: startTime,
+                    end_time: endTime,
+                    aws_access_key_id: awsAccessKeyId,
+                    aws_secret_access_key: awsSecretAccessKey,
+                    aws_region: awsRegion
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('logOutput').innerHTML = 'Error: ' + data.error;
+                } else {
+                    createChart(data.event_counts);
+                    displayUserCounts(data.user_counts);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('logOutput').innerHTML = 'Error: ' + error.message;
+            });
+        }
+
+        function createChart(eventCounts) {
+            const ctx = document.getElementById('eventChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(eventCounts),
+                    datasets: [{
+                        label: 'Event Count',
+                        data: Object.values(eventCounts),
+                        backgroundColor: 'rgba(255, 153, 0, 0.6)',
+                        borderColor: 'rgba(255, 153, 0, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Event Name'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'CloudTrail Event Distribution'
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const eventName = chart.data.labels[index];
+                            navigateToEventDetails(eventName);
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayUserCounts(userCounts) {
+            const logOutput = document.getElementById('logOutput');
+            let userCountsHtml = '<h2>User Activity</h2><ul>';
+            for (const [user, count] of Object.entries(userCounts)) {
+                userCountsHtml += `<li><a href="#" onclick="navigateToUserDetails('${user}'); return false;">${user}: ${count} events</a></li>`;
+            }
+            userCountsHtml += '</ul>';
+            logOutput.innerHTML = userCountsHtml;
+        }
+
+        function updateURL(startTime, endTime, awsAccessKeyId, awsSecretAccessKey, awsRegion) {
+            const url = new URL(window.location);
+            url.searchParams.set('start_time', startTime);
+            url.searchParams.set('end_time', endTime);
+            url.searchParams.set('aws_access_key_id', awsAccessKeyId);
+            url.searchParams.set('aws_secret_access_key', awsSecretAccessKey);
+            url.searchParams.set('aws_region', awsRegion);
+            window.history.pushState({}, '', url);
+        }
+
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        function navigateToEventDetails(eventName) {
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const awsAccessKeyId = document.getElementById('awsAccessKeyId').value;
+            const awsSecretAccessKey = document.getElementById('awsSecretAccessKey').value;
+            const awsRegion = document.getElementById('awsRegion').value;
+            
+            const params = new URLSearchParams({
+                start_time: startTime,
+                end_time: endTime,
+                aws_access_key_id: awsAccessKeyId,
+                aws_secret_access_key: awsSecretAccessKey,
+                aws_region: awsRegion
+            });
+            
+            window.location.href = `/event_details/${eventName}?${params.toString()}`;
+        }
+
+        function navigateToUserDetails(username) {
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const awsAccessKeyId = document.getElementById('awsAccessKeyId').value;
+            const awsSecretAccessKey = document.getElementById('awsSecretAccessKey').value;
+            const awsRegion = document.getElementById('awsRegion').value;
+            
+            const params = new URLSearchParams({
+                start_time: startTime,
+                end_time: endTime,
+                aws_access_key_id: awsAccessKeyId,
+                aws_secret_access_key: awsSecretAccessKey,
+                aws_region: awsRegion
+            });
+            
+            window.location.href = `/user_details/${username}?${params.toString()}`;
+        }
+
+        window.onload = function() {
+            const urlStartTime = getUrlParameter('start_time');
+            const urlEndTime = getUrlParameter('end_time');
+            const urlAwsAccessKeyId = getUrlParameter('aws_access_key_id');
+            const urlAwsSecretAccessKey = getUrlParameter('aws_secret_access_key');
+            const urlAwsRegion = getUrlParameter('aws_region');
+
+            if (urlStartTime && urlEndTime) {
+                document.getElementById('startTime').value = urlStartTime;
+                document.getElementById('endTime').value = urlEndTime;
+            } else {
+                const end = new Date();
+                const start = new Date(end.getTime() - (24 * 60 * 60 * 1000));
+                document.getElementById('endTime').value = end.toISOString().slice(0, 16);
+                document.getElementById('startTime').value = start.toISOString().slice(0, 16);
+            }
+
+            // Restaurar credenciais e região da URL ou do armazenamento local
+            let accessKeyId, secretAccessKey, region;
+            if (urlAwsAccessKeyId && urlAwsSecretAccessKey && urlAwsRegion) {
+                accessKeyId = urlAwsAccessKeyId;
+                secretAccessKey = urlAwsSecretAccessKey;
+                region = urlAwsRegion;
+            } else {
+                accessKeyId = localStorage.getItem('awsAccessKeyId');
+                secretAccessKey = localStorage.getItem('awsSecretAccessKey');
+                region = localStorage.getItem('awsRegion');
+            }
+
+            if (accessKeyId && secretAccessKey && region) {
+                document.getElementById('awsAccessKeyId').value = accessKeyId;
+                document.getElementById('awsSecretAccessKey').value = secretAccessKey;
+                document.getElementById('awsRegion').value = region;
+                
+                // Carregar logs automaticamente se houver credenciais e região
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                fetchLogsAndUpdateChart(startTime, endTime, accessKeyId, secretAccessKey, region);
+            }
+        }
+    </script>
+</body>
+</html>

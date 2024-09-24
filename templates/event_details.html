@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Details: {{ event_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #232f3e;
+            --secondary-color: #ff9900;
+            --background-color: #f2f3f3;
+            --card-background: #ffffff;
+            --text-color: #16191f;
+            --border-color: #d5dbdb;
+        }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        .back-link {
+            margin-bottom: 20px;
+        }
+        .back-link a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+        .back-link a:hover {
+            color: var(--primary-color);
+        }
+        .event {
+            background-color: var(--card-background);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .event-field {
+            margin-bottom: 15px;
+        }
+        .event-field-name {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .cloud-trail-event {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            max-height: 500px;
+            overflow-x: auto;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+        .time-range {
+            font-style: italic;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-link">
+            <a href="#" onclick="return navigateBack()">← Back to main page</a>
+        </div>
+        <h1>Event Details: {{ event_name }}</h1>
+        <p class="time-range">Time range: {{ start_time }} to {{ end_time }}</p>
+        {% for event in events %}
+        <div class="event">
+            <div class="event-field">
+                <span class="event-field-name">Event ID:</span> {{ event.EventId }}
+            </div>
+            <div class="event-field">
+                <span class="event-field-name">Event time:</span> {{ event.EventTime }}
+            </div>
+            <div class="event-field">
+                <span class="event-field-name">Username:</span> {{ event.Username }}
+            </div>
+            <div class="event-field">
+                <span class="event-field-name">CloudTrailEvent:</span>
+                <pre class="cloud-trail-event">{{ event.CloudTrailEvent }}</pre>
+            </div>
+            {% for key, value in event.items() %}
+                {% if key not in ['EventId', 'EventTime', 'Username', 'CloudTrailEvent'] %}
+                <div class="event-field">
+                    <span class="event-field-name">{{ key }}:</span> {{ value }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+    function navigateBack() {
+        const params = new URLSearchParams(window.location.search);
+        const startTime = params.get('start_time');
+        const endTime = params.get('end_time');
+        const awsAccessKeyId = params.get('aws_access_key_id');
+        const awsSecretAccessKey = params.get('aws_secret_access_key');
+        const awsSessionToken = params.get('aws_session_token');
+        const awsRegion = params.get('aws_region');
+        const awsAccountId = params.get('account_id');
+        const awsS3Bucket = params.get('s3_bucket_name');
+
+        const mainPageUrl = new URL('/', window.location.origin);
+        mainPageUrl.searchParams.set('start_time', startTime);
+        mainPageUrl.searchParams.set('end_time', endTime);
+        mainPageUrl.searchParams.set('aws_access_key_id', awsAccessKeyId);
+        mainPageUrl.searchParams.set('aws_secret_access_key', awsSecretAccessKey);
+        mainPageUrl.searchParams.set('aws_session_token', awsSessionToken);
+        mainPageUrl.searchParams.set('aws_region', awsRegion);
+        mainPageUrl.searchParams.set('account_id', awsAccountId);
+        mainPageUrl.searchParams.set('s3_bucket_name', awsS3Bucket);
+
+        window.location.href = mainPageUrl.toString();
+        return false;
+    }
+    </script>
+</body>
+</html>
