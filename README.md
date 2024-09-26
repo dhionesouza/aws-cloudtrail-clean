@@ -1,14 +1,14 @@
 # aws-cloudtrail-clean
 
-##Como fazer funcionar localmente?
+**Como fazer funcionar localmente?**
 
 Após baixar o programa abra seu VSCode ou terminal e execute o arquivo "app.py" com o comando "python app.py", e em seguida acesse no navegador o "http" fornecido pelo terminal.
 
 Se você tem conhecimento em AWS vai conseguir fazer esse processo numa boa, caso não, entre em [contato comigo]( https://www.linkedin.com/in/dhione-souza/ ) que posso te ajudar.
 
 **1°** Acesso o painel da AWS e crie um usuário IAM:
-    **Sugestão de Nome:** aws-cloudtrail-clean
-    **Permissão:** AWSCloudTrail_ReadOnlyAccess
+**Sugestão de Nome:** aws-cloudtrail-clean
+**Permissão:** AWSCloudTrail_ReadOnlyAccess
 
 **2°** Crie uma AccessKey para o usuário recém criado, neste exemplo, para o usuário, "aws-cloudtrail-clean":
     Use a access key e Secret Key para preencher o campo de AWSCredentials no site que estará em execução.
