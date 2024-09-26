@@ -39,6 +39,17 @@ def get_cloudtrail_events(start_time, end_time, aws_credentials):
     
     return events
 
+def get_username(event):
+    # Tenta obter o username de diferentes campos possíveis
+    if 'Username' in event:
+        return event['Username']
+    elif 'userIdentity' in event and 'userName' in event['userIdentity']:
+        return event['userIdentity']['userName']
+    elif 'userIdentity' in event and 'principalId' in event['userIdentity']:
+        return event['userIdentity']['principalId']
+    else:
+        return 'Unknown User'
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -59,7 +70,7 @@ def get_logs():
         events = get_cloudtrail_events(start_time, end_time, aws_credentials)
         
         event_counts = Counter(event['EventName'] for event in events)
-        user_counts = Counter(event['Username'] for event in events)
+        user_counts = Counter(get_username(event) for event in events)
         
         result = {
             'event_counts': dict(event_counts),
@@ -98,6 +109,7 @@ def event_details(event_name):
                     event['CloudTrailEvent'] = json.dumps(cloud_trail_event, indent=2)
                 except json.JSONDecodeError:
                     pass
+            event['Username'] = get_username(event)
         
         return render_template('event_details.html', 
                                event_name=event_name, 
@@ -127,7 +139,7 @@ def user_details(username):
     
     try:
         events = get_cloudtrail_events(start_time, end_time, aws_credentials)
-        filtered_events = [event for event in events if event['Username'] == username]
+        filtered_events = [event for event in events if get_username(event) == username]
         
         for event in filtered_events:
             if 'CloudTrailEvent' in event:
@@ -136,6 +148,7 @@ def user_details(username):
                     event['CloudTrailEvent'] = json.dumps(cloud_trail_event, indent=2)
                 except json.JSONDecodeError:
                     pass
+            event['Username'] = get_username(event)
         
         return render_template('user_details.html', 
                                username=username, 
