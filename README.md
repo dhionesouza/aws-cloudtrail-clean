@@ -7,6 +7,7 @@ Após baixar o programa abra seu VSCode ou terminal e execute o arquivo "app.py"
 Se você tem conhecimento em AWS vai conseguir fazer esse processo numa boa, caso não, entre em [contato comigo]( https://www.linkedin.com/in/dhione-souza/ ) que posso te ajudar.
 
 **1°** Acesso o painel da AWS e crie um usuário IAM:
+
 **Sugestão de Nome:** aws-cloudtrail-clean
 **Permissão:** AWSCloudTrail_ReadOnlyAccess
 
